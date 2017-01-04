@@ -2,6 +2,11 @@ package mapreduce
 
 import (
 	"hash/fnv"
+	"os"
+	"fmt"
+	"log"
+	"bytes"
+	"io"
 )
 
 // doMap does the job of a map worker: it reads one of the input files
@@ -40,6 +45,17 @@ func doMap(
 	//     err := enc.Encode(&kv)
 	//
 	// Remember to close the file after you have written all the values!
+	buf := bytes.NewBuffer(nil)
+	file,err := os.Open(inFile)
+	if err != nil{
+		log.Fatal(err)
+	}
+	io.Copy(buf, file)
+	file.Close()
+
+	str := string(buf.Bytes())
+	keyValue :=mapF(inFile,str)
+	fmt.Println(keyValue)
 }
 
 func ihash(s string) uint32 {
