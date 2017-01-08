@@ -3,7 +3,7 @@ package mapreduce
 import (
 	"hash/fnv"
 	"os"
-	"fmt"
+	//"fmt"
 	"log"
 	"bytes"
 	"io"
@@ -20,6 +20,8 @@ func doMap(
 	nReduce int, // the number of reduce task that will be run ("R" in the paper)
 	mapF func(file string, contents string) []KeyValue,
 ) {
+	// to change the flags on the default logger
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// TODO:
 	// You will need to write this function.
 	// You can find the filename for this map task's input to reduce task number
@@ -60,8 +62,8 @@ func doMap(
 	files := make(map[string] *os.File)
 	for i:=0;i<nReduce;i++{
 		intermediate_file_name := reduceName(jobName, mapTaskNumber, i)
-		fmt.Println(intermediate_file_name)
-		file,err := os.OpenFile(inFile,os.O_WRONLY|os.O_CREATE,0600)
+		log.Println(intermediate_file_name)
+		file,err := os.OpenFile(intermediate_file_name,os.O_WRONLY|os.O_CREATE,0600)
 		if err != nil{
 			log.Fatal(err)
 		}
@@ -69,11 +71,14 @@ func doMap(
 	}
 	for key,kv:= range keyValue{
 		r := int(ihash(string(key))) %  nReduce
+		//go - priority lower than mod and other arth 
+		if r < 0{
+			r = -r
+		}
 		intermediate_file_name := reduceName(jobName, mapTaskNumber, r)
 		enc := json.NewEncoder(files[intermediate_file_name])
-		err := enc.Encode(&kv)
-		if err != nil{
-			log.Fatal(err)
+		if err := enc.Encode(&kv); err != nil {
+		    log.Fatal(err)
 		}
 	}
 	for _,file:= range files{

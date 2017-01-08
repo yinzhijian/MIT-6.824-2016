@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 //	"bytes"
-//	"io"
+	"io"
 	"encoding/json"
 	"sort"
 )
@@ -41,25 +41,29 @@ func doReduce(
 	// 	enc.Encode(KeyValue{key, reduceF(...)})
 	// }
 	// file.Close()
-	intermediate_file_name := reduceName(jobName, nMap, reduceTaskNumber)
-	fmt.Println("yanxin"+intermediate_file_name)
-	file,err := os.Open(intermediate_file_name)
-	if err != nil{
-		log.Fatal(err)
-	}
-	dec := json.NewDecoder(file)
-	var kv KeyValue
 	var keys []string
 	kvs := make(map[string][]string)
-	for{
-		err := dec.Decode(&kv)
+	//read all map intermediate file assocate to reduce
+	for i:=0;i<nMap;i++{
+		intermediate_file_name := reduceName(jobName, i, reduceTaskNumber)
+		file,err := os.Open(intermediate_file_name)
 		if err != nil{
 			log.Fatal(err)
-			break
 		}
-		kvs[kv.Key] = append(kvs[kv.Key],kv.Value)
+		dec := json.NewDecoder(file)
+		var kv KeyValue
+		for{
+			err := dec.Decode(&kv)
+			if err == io.EOF{
+				break
+			}else if err != nil{
+				log.Fatal(err)
+				break
+			}
+			kvs[kv.Key] = append(kvs[kv.Key],kv.Value)
+		}
+		file.Close()
 	}
-	file.Close()
 	for k := range kvs {
 		keys = append(keys,k)
 	}
