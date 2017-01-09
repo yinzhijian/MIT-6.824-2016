@@ -3,7 +3,7 @@ package mapreduce
 import (
 //	"hash/fnv"
 	"os"
-	"fmt"
+	//"fmt"
 	"log"
 //	"bytes"
 	"io"
@@ -46,6 +46,7 @@ func doReduce(
 	//read all map intermediate file assocate to reduce
 	for i:=0;i<nMap;i++{
 		intermediate_file_name := reduceName(jobName, i, reduceTaskNumber)
+		log.Println(intermediate_file_name)
 		file,err := os.Open(intermediate_file_name)
 		if err != nil{
 			log.Fatal(err)
@@ -69,7 +70,6 @@ func doReduce(
 	}
 	sort.Strings(keys)
 	merge_name := mergeName(jobName, reduceTaskNumber)
-	fmt.Println("yintao"+merge_name)
 	merge_file,err := os.OpenFile(merge_name,os.O_WRONLY|os.O_CREATE ,0600)
 	if err != nil{
 		log.Fatal(err)

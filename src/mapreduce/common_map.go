@@ -69,8 +69,8 @@ func doMap(
 		}
 		files[intermediate_file_name] = file
 	}
-	for key,kv:= range keyValue{
-		r := int(ihash(string(key))) %  nReduce
+	for _,kv:= range keyValue{
+		r := int(ihash(string(kv.Key))) %  nReduce
 		//go - priority lower than mod and other arth 
 		if r < 0{
 			r = -r
