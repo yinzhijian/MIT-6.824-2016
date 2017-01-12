@@ -1,8 +1,7 @@
 package mapreduce
-
 import (
 	"fmt"
-	"strconv"
+	"sync"
 )
 
 // schedule starts and waits for all tasks in the given phase (Map or Reduce).
@@ -17,6 +16,12 @@ func (mr *Master) schedule(phase jobPhase) {
 		ntasks = mr.nReduce
 		nios = len(mr.files)
 	}
+	var mutex = &sync.Mutex{}
+	var taskList []int
+	for i:=0;i<ntasks;i+=1{
+		taskList = append(taskList,i)
+	}
+
 	fmt.Printf("Schedule: %v %v tasks (%d I/Os)\n", ntasks, phase, nios)
 
 	// All ntasks tasks have to be scheduled on workers, and only once all of
@@ -28,22 +33,34 @@ func (mr *Master) schedule(phase jobPhase) {
 	//
 	for ntasks > 0{
 		w := <-mr.registerChannel
-		go func(w string,ntasks *int){
-			*ntasks = *ntasks - 1
+		var task int
+		mutex.Lock()
+		if len(taskList) > 1{
+			task, taskList = taskList[0],taskList[1:]
+		}else{
+			task = taskList[0]
+		}
+		mutex.Unlock()
+		go func(w string,task int){
 			args := new(DoTaskArgs)
-			args.JobName = "task"+strconv.Itoa(*ntasks)
+			args.JobName = mr.jobName
 			args.Phase = phase
-			args.TaskNumber = *ntasks
+			args.TaskNumber = task
 			args.NumOtherPhase = nios
-			args.File = mr.files[*ntasks]
+			args.File = mr.files[task]
 			ok := call(w, "Worker.DoTask", args, new(struct{}))
 			if ok {
 				mr.registerChannel <- w
+				mutex.Lock()
+				ntasks -= 1
+				mutex.Unlock()
 			}else{
-				*ntasks = *ntasks + 1
+				mutex.Lock()
+				taskList = append(taskList,task)
+				ntasks += 1
+				mutex.Unlock()
 			}
-		}(w,&ntasks)
-		//worker := <-mr.registerChannel
+		}(w,task)
 	}
 	fmt.Printf("Schedule: %v phase done\n", phase)
 }

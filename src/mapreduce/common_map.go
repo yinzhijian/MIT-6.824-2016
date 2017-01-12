@@ -62,7 +62,6 @@ func doMap(
 	files := make(map[string] *os.File)
 	for i:=0;i<nReduce;i++{
 		intermediate_file_name := reduceName(jobName, mapTaskNumber, i)
-		log.Println(intermediate_file_name)
 		file,err := os.OpenFile(intermediate_file_name,os.O_WRONLY|os.O_CREATE,0600)
 		if err != nil{
 			log.Fatal(err)
