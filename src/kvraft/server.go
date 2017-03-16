@@ -6,6 +6,7 @@ import (
 	"log"
 	"raft"
 	"sync"
+	"fmt"
 )
 
 const Debug = 0
@@ -22,6 +23,9 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+	Key   string
+	Value string
+	Op    string // "Put" or "Append"
 }
 
 type RaftKV struct {
@@ -29,6 +33,7 @@ type RaftKV struct {
 	me      int
 	rf      *raft.Raft
 	applyCh chan raft.ApplyMsg
+	db map[string]string
 
 	maxraftstate int // snapshot if log grows this big
 
@@ -38,10 +43,30 @@ type RaftKV struct {
 
 func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
+	fmt.Printf("server Get,args:%+v\n",args)
+	//if kv.rf.state != Leader{
+	//	reply.Err = "Wrong Leader"
+	//	reply.WrongLeader = true
+	//	return
+	//}
+	reply.Value = kv.db[args.Key]
+	return
 }
 
 func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+	fmt.Printf("server PutAppend,args:%+v\n",args)
+	op := Op{}
+	op.Key = args.Key
+	op.Value = args.Value
+	op.Op = args.Op
+	//index,currentTerm,isLeader := kv.rf.Start(op)
+	_,_,isLeader := kv.rf.Start(op)
+	if isLeader == false{
+		reply.WrongLeader = true
+		reply.Err = ""
+	}
+	return
 }
 
 //
@@ -81,6 +106,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
+	kv.db = make(map[string]string)
 
 
 	return kv
